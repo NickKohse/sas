@@ -1,7 +1,10 @@
 package main
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -11,7 +14,6 @@ import (
 
 func sendFile(w http.ResponseWriter, r *http.Request) {
 	// Send the file to the client
-	fmt.Printf(r.FormValue("artifact"))
 	fileBytes, err := ioutil.ReadFile("./repository/" + r.FormValue("artifact")) //TODO Stream this instead of reading it all into memory
 	if err != nil {
 		fmt.Println(err)
@@ -25,9 +27,21 @@ func sendMetadata() {
 	// Send the contents of the meta data file in json
 }
 
-func sendChecksum() {
+func sendChecksum(w http.ResponseWriter, r *http.Request) {
+	// TODO eventually we will keep the checksum in the metadata and not calculate it here
 	// Send the sha256 checksum of the file
+	file, err := os.Open("./repository/" + r.FormValue("artifact"))
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer file.Close()
 
+	hasher := sha256.New()
+	if _, err := io.Copy(hasher, file); err != nil {
+		fmt.Println(err)
+	}
+	hashString := hex.EncodeToString(hasher.Sum(nil)) + "\n"
+	w.Write([]byte(hashString))
 }
 
 func sendHealth(w http.ResponseWriter, r *http.Request) {
@@ -78,8 +92,14 @@ func recieveFile(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Successfully Uploaded File\n")
 }
 
-func deleteFile() {
+func deleteFile(w http.ResponseWriter, r *http.Request) {
 	// Remove the file and its meta data, if we have any in memory references to that file remove them too
+	err := os.Remove("./repository/" + r.FormValue("artifact"))
+	if err != nil {
+		fmt.Println("Error: ", err) //print the error if file is not removed
+	} else {
+		w.Write([]byte("Successfully deleted file: " + r.FormValue("artifact") + "\n")) //print success if file is removed
+	}
 }
 
 func artifactHandler(w http.ResponseWriter, r *http.Request) {
@@ -89,8 +109,7 @@ func artifactHandler(w http.ResponseWriter, r *http.Request) {
 	case "POST":
 		recieveFile(w, r)
 	case "DELETE":
-		w.Write([]byte("Received a DELETE request\n"))
-		deleteFile()
+		deleteFile(w, r)
 	default:
 		w.WriteHeader(http.StatusNotImplemented)
 		w.Write([]byte("Not Implemented\n"))
@@ -111,8 +130,7 @@ func metadataHandler(w http.ResponseWriter, r *http.Request) {
 func checksumHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
-		w.Write([]byte("Received a GET request\n"))
-		sendChecksum()
+		sendChecksum(w, r)
 	default:
 		w.WriteHeader(http.StatusNotImplemented)
 		w.Write([]byte("Not Implemented\n"))

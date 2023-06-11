@@ -2,11 +2,11 @@
 Simple Artifact Store
 
 ## Basic Structure
-- GET `/artifact/<path to artifact>`
-- POST `/artifact/<path to artifact>`
-- DELETE `/artifact/<path to artifact>`
-- GET `/checksum/<path to artifact>`
-- GET `/metadata/<path to artifact>`
+- GET `/artifact`
+- POST `/artifact`
+- DELETE `/artifact`
+- GET `/checksum`
+- GET `/metadata`
 - GET `/health`
 
 ## Example curl commands
@@ -16,6 +16,9 @@ Simple Artifact Store
 
 ### Retrieving a file
 `curl -X GET -F "artifact=test" localhost:1997/artifact -o output.txt`
+
+### Removing a file
+`curl -X DELETE -F "artifact=test" localhost:1997/artifact`
 
 ## TODOs
 - Send 5xx on any error encountered
