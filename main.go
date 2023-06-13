@@ -77,16 +77,22 @@ func recieveFile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	path := strings.Replace(r.URL.Path, "artifact", "", 1) // for now assume they wont specify the filename in the post path
-	path = "./repository" + path                           // TODO, eventually reponame will be specified in the url
-	os.MkdirAll(path, os.ModePerm)
+	filePath := "./repository" + path                      // TODO, eventually reponame will be specified in the url
+	os.MkdirAll(filePath, os.ModePerm)
 
 	// Create a temporary file within our temp-images directory that follows
 	// a particular naming pattern
 	// nick - here we will actaully need to create a file in the correct directory after reading the url
-	writeErr := os.WriteFile(path+handler.Filename, fileBytes, 0600)
+	writeErr := os.WriteFile(filePath+handler.Filename, fileBytes, 0600)
 	if writeErr != nil {
-		fmt.Println(err)
+		fmt.Println(writeErr)
 	}
+
+	metadataPath := "./repository_metadata" + path
+	os.MkdirAll(metadataPath, os.ModePerm)
+	//TODO move metadata saving to a thread so we can return faster
+	m := newMetadata(time.Now().Unix(), time.Now().Unix(), -1)
+	m.saveMetadata(metadataPath + handler.Filename + ".metadata")
 
 	// return that we have successfully uploaded our file!
 	fmt.Fprintf(w, "Successfully Uploaded File\n")
