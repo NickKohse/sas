@@ -23,8 +23,10 @@ func sendFile(w http.ResponseWriter, r *http.Request) {
 	w.Write(fileBytes)
 }
 
-func sendMetadata() {
+func sendMetadata(w http.ResponseWriter, r *http.Request) {
 	// Send the contents of the meta data file in json
+	metadataJson := readMetadataJson(r.FormValue("artifact"))
+	w.Write(metadataJson)
 }
 
 func sendChecksum(w http.ResponseWriter, r *http.Request) {
@@ -80,6 +82,11 @@ func recieveFile(w http.ResponseWriter, r *http.Request) {
 	filePath := "./repository" + path                      // TODO, eventually reponame will be specified in the url
 	os.MkdirAll(filePath, os.ModePerm)
 
+	update := false
+	if fileExists(filePath + handler.Filename) {
+		update = true
+	}
+
 	// Create a temporary file within our temp-images directory that follows
 	// a particular naming pattern
 	// nick - here we will actaully need to create a file in the correct directory after reading the url
@@ -90,8 +97,23 @@ func recieveFile(w http.ResponseWriter, r *http.Request) {
 
 	metadataPath := "./repository_metadata" + path
 	os.MkdirAll(metadataPath, os.ModePerm)
-	//TODO move metadata saving to a thread so we can return faster
-	m := newMetadata(time.Now().Unix(), time.Now().Unix(), -1)
+	//TODO move metadata saving to a thread so we can return faster. ALSO TODO, need to differentiate between a new upload and a re-upload
+	hasher := sha256.New()
+	_, hashErr := hasher.Write(fileBytes)
+	if hashErr != nil {
+		fmt.Println(hashErr)
+	}
+	hashString := hex.EncodeToString(hasher.Sum(nil))
+	m := &metadata{}
+	if update {
+		m = readMetadata(handler.Filename)
+		m.ModifyTime = time.Now().Unix()
+		m.Size = handler.Size
+		m.Sha256 = hashString
+	} else {
+		m = newImplicitMetadata(hashString, handler.Size)
+	}
+
 	m.saveMetadata(metadataPath + handler.Filename + ".metadata")
 
 	// return that we have successfully uploaded our file!
@@ -106,6 +128,7 @@ func deleteFile(w http.ResponseWriter, r *http.Request) {
 	} else {
 		w.Write([]byte("Successfully deleted file: " + r.FormValue("artifact") + "\n")) //print success if file is removed
 	}
+	removeMetadata(r.FormValue("artifact"))
 }
 
 func artifactHandler(w http.ResponseWriter, r *http.Request) {
@@ -125,8 +148,7 @@ func artifactHandler(w http.ResponseWriter, r *http.Request) {
 func metadataHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
-		w.Write([]byte("Received a GET request\n"))
-		sendMetadata()
+		sendMetadata(w, r)
 	default:
 		w.WriteHeader(http.StatusNotImplemented)
 		w.Write([]byte("Not Implemented\n"))
