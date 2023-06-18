@@ -32,3 +32,11 @@
 - Due to the time delay between the in-memory data getting updated and it being written to disk its possible for the data to become inaccurate if the server crashes at the wonr time. mainly this would affect sha256 and size other data might be lost as well, but this would be unrevocerable
     - Because of this there must be a way to force a metadata rebuild, or it could just happen automatically when it sees a file whose metadata mtime is older than the file mtime it refers to.
 - Metadat will be stored in a parallel repository, for example if the user specifies a repo called buildFiles, the metadata will be stored in buildFiles_meta
+
+
+## Health Stats
+### What data
+- Uptime
+- \# Files managed
+- Total space used (eventually space used per repo as well)
+- Endpoint usage stats since last reboot

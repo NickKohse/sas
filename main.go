@@ -13,6 +13,15 @@ import (
 )
 
 func sendFile(w http.ResponseWriter, r *http.Request) {
+	if r.FormValue("artifact") == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("No artifact key found in form\n"))
+		return
+	}
+	if !fileExists("./repository/" + r.FormValue("artifact")) {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
 	// Send the file to the client
 	fileBytes, err := ioutil.ReadFile("./repository/" + r.FormValue("artifact")) //TODO Stream this instead of reading it all into memory
 	if err != nil {
@@ -24,14 +33,22 @@ func sendFile(w http.ResponseWriter, r *http.Request) {
 }
 
 func sendMetadata(w http.ResponseWriter, r *http.Request) {
-	// Send the contents of the meta data file in json
+	if r.FormValue("artifact") == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("No artifact key found in form\n"))
+		return
+	}
 	metadataJson := readMetadataJson(r.FormValue("artifact"))
 	w.Write(metadataJson)
 }
 
 func sendChecksum(w http.ResponseWriter, r *http.Request) {
 	// TODO eventually we will keep the checksum in the metadata and not calculate it here
-	// Send the sha256 checksum of the file
+	if r.FormValue("artifact") == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("No artifact key found in form\n"))
+		return
+	}
 	file, err := os.Open("./repository/" + r.FormValue("artifact"))
 	if err != nil {
 		fmt.Println(err)
@@ -176,6 +193,16 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func searchHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "GET":
+		//sendHealth(w, r)
+	default:
+		w.WriteHeader(http.StatusNotImplemented)
+		w.Write([]byte("Not Implemented\n"))
+	}
+}
+
 var startTime int64
 
 func main() {
@@ -189,6 +216,7 @@ func main() {
 	http.HandleFunc("/metadata", metadataHandler)
 	http.HandleFunc("/checksum", checksumHandler)
 	http.HandleFunc("/health", healthHandler)
+	http.HandleFunc("/search", searchHandler)
 
 	http.ListenAndServe(":1997", nil)
 
