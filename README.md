@@ -33,6 +33,15 @@ Simple Artifact Store
 - Im memory metadata cache
 
 ## Rough Version Plan
-### v1
-Fully working, one folder/one repo structure thats searchable.
+### v0 beta
+one folder/one repo structure thats searchable.
+error handling for non existant files/server side errors
 
+### v0.x beta
+In memory metadata
+Flesh out stats
+
+### v1
+Config file, can specify multiple repos to create 
+Add file streaming
+Make urls wildcard
