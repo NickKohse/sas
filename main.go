@@ -79,7 +79,8 @@ func recieveFile(w http.ResponseWriter, r *http.Request) {
 	// look for key 'artifact'
 	file, handler, err := r.FormFile("artifact")
 	if err != nil {
-		// Write a message and send an appropriate error code
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("Unable to process artifact, it's possible the key doesnt exist in the form, or it was not a valid file.\n"))
 		return
 	}
 	defer file.Close()
@@ -92,7 +93,8 @@ func recieveFile(w http.ResponseWriter, r *http.Request) {
 	// TODO would be better to do this by streaming
 	fileBytes, err := ioutil.ReadAll(file)
 	if err != nil {
-		fmt.Println(err)
+		handleServerError(err, w)
+		return
 	}
 
 	path := strings.Replace(r.URL.Path, "artifact", "", 1) // for now assume they wont specify the filename in the post path
@@ -109,7 +111,8 @@ func recieveFile(w http.ResponseWriter, r *http.Request) {
 	// nick - here we will actaully need to create a file in the correct directory after reading the url
 	writeErr := os.WriteFile(filePath+handler.Filename, fileBytes, 0600)
 	if writeErr != nil {
-		fmt.Println(writeErr)
+		handleServerError(writeErr, w)
+		return
 	}
 
 	metadataPath := "./repository_metadata" + path
@@ -118,7 +121,8 @@ func recieveFile(w http.ResponseWriter, r *http.Request) {
 	hasher := sha256.New()
 	_, hashErr := hasher.Write(fileBytes)
 	if hashErr != nil {
-		fmt.Println(hashErr)
+		handleServerError(hashErr, w)
+		return
 	}
 	hashString := hex.EncodeToString(hasher.Sum(nil))
 	m := &metadata{}
@@ -139,13 +143,43 @@ func recieveFile(w http.ResponseWriter, r *http.Request) {
 
 func deleteFile(w http.ResponseWriter, r *http.Request) {
 	// Remove the file and its meta data, if we have any in memory references to that file remove them too
+	if r.FormValue("artifact") == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("No artifact key found in form\n"))
+		return
+	}
+	if !fileExists("./repository/" + r.FormValue("artifact")) {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
 	err := os.Remove("./repository/" + r.FormValue("artifact"))
 	if err != nil {
-		fmt.Println("Error: ", err) //print the error if file is not removed
+		handleServerError(err, w)
+		return
 	} else {
 		w.Write([]byte("Successfully deleted file: " + r.FormValue("artifact") + "\n")) //print success if file is removed
 	}
 	removeMetadata(r.FormValue("artifact"))
+}
+
+func searchRepo(w http.ResponseWriter, r *http.Request) {
+	query := r.URL.Query().Get("q")
+	var results []string
+	entries, err := os.ReadDir("./repository")
+	if err != nil {
+		handleServerError(err, w)
+		return
+	}
+	for _, e := range entries {
+		if strings.Contains(e.Name(), query) {
+			results = append(results, e.Name())
+		}
+	}
+	if len(results) == 0 {
+		w.Write([]byte("No results found.\n"))
+		return
+	}
+	w.Write([]byte(strings.Join(results, "\n") + "\n")) //TODO: Add pagination
 }
 
 func artifactHandler(w http.ResponseWriter, r *http.Request) {
@@ -196,7 +230,7 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 func searchHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
-		//sendHealth(w, r)
+		searchRepo(w, r)
 	default:
 		w.WriteHeader(http.StatusNotImplemented)
 		w.Write([]byte("Not Implemented\n"))

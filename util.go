@@ -1,6 +1,10 @@
 package main
 
-import "os"
+import (
+	"fmt"
+	"net/http"
+	"os"
+)
 
 func fileExists(filename string) bool {
 	info, err := os.Stat(filename)
@@ -8,4 +12,9 @@ func fileExists(filename string) bool {
 		return false
 	}
 	return !info.IsDir()
+}
+
+func handleServerError(err error, w http.ResponseWriter) {
+	fmt.Println(err) //TODO log this to a file as well
+	w.WriteHeader(http.StatusInternalServerError)
 }
