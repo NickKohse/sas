@@ -138,6 +138,7 @@ func recieveFile(w http.ResponseWriter, r *http.Request) {
 	m.saveMetadata(metadataPath + handler.Filename + ".metadata")
 
 	// return that we have successfully uploaded our file!
+	w.WriteHeader(http.StatusCreated)
 	fmt.Fprintf(w, "Successfully Uploaded File\n")
 }
 
@@ -191,8 +192,8 @@ func artifactHandler(w http.ResponseWriter, r *http.Request) {
 	case "DELETE":
 		deleteFile(w, r)
 	default:
-		w.WriteHeader(http.StatusNotImplemented)
-		w.Write([]byte("Not Implemented\n"))
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		w.Write([]byte("Method Not Allowed\n"))
 	}
 }
 
@@ -201,8 +202,8 @@ func metadataHandler(w http.ResponseWriter, r *http.Request) {
 	case "GET":
 		sendMetadata(w, r)
 	default:
-		w.WriteHeader(http.StatusNotImplemented)
-		w.Write([]byte("Not Implemented\n"))
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		w.Write([]byte("Method Not Allowed\n"))
 	}
 }
 
@@ -211,8 +212,8 @@ func checksumHandler(w http.ResponseWriter, r *http.Request) {
 	case "GET":
 		sendChecksum(w, r)
 	default:
-		w.WriteHeader(http.StatusNotImplemented)
-		w.Write([]byte("Not Implemented\n"))
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		w.Write([]byte("Method Not Allowed\n"))
 	}
 }
 
@@ -222,8 +223,8 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 	case "GET":
 		sendHealth(w, r)
 	default:
-		w.WriteHeader(http.StatusNotImplemented)
-		w.Write([]byte("Not Implemented\n"))
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		w.Write([]byte("Method Not Allowed\n"))
 	}
 }
 
@@ -232,8 +233,8 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 	case "GET":
 		searchRepo(w, r)
 	default:
-		w.WriteHeader(http.StatusNotImplemented)
-		w.Write([]byte("Not Implemented\n"))
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		w.Write([]byte("Method Not Allowed\n"))
 	}
 }
 
