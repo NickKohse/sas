@@ -25,7 +25,7 @@ Simple Artifact Store
 `curl -X GET -F "artifact=test" localhost:1997/metadata`
 
 ### Searching for a file 
-`curl -X GET -F "artifact=test" localhost:1997/search?q=test`
+`curl -X GET localhost:1997/search?q=test`
 
 ## TODOs
 - Send 5xx on any error encountered

@@ -38,6 +38,10 @@ func sendMetadata(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("No artifact key found in form\n"))
 		return
 	}
+	if !fileExists("./repository/" + r.FormValue("artifact")) {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
 	metadataJson := readMetadataJson(r.FormValue("artifact"))
 	w.Write(metadataJson)
 }
@@ -47,6 +51,10 @@ func sendChecksum(w http.ResponseWriter, r *http.Request) {
 	if r.FormValue("artifact") == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("No artifact key found in form\n"))
+		return
+	}
+	if !fileExists("./repository/" + r.FormValue("artifact")) {
+		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 	file, err := os.Open("./repository/" + r.FormValue("artifact"))
