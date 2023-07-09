@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"time"
 )
@@ -41,42 +40,45 @@ func newMetadata(ct int64, mt int64, at int64, sha string, size int64, accessCou
 	return &m
 }
 
-func (m metadata) saveMetadata(filepath string) {
+// filepath refers to the in structure file path, i.e. not including system prefixes like repository_metadata or system suffixes like .metadata
+func (m metadata) saveMetadata(filepath string) error {
 	bytes, err := json.Marshal(m)
 	if err != nil {
-		fmt.Println(err)
+		return err
 	}
-	writeErr := os.WriteFile(filepath, bytes, 0600)
+	writeErr := os.WriteFile("./repository_metadata/"+filepath+".metadata", bytes, 0600)
 	if writeErr != nil {
-		fmt.Println(writeErr)
+		return writeErr
 	}
+	return nil
 }
 
-func readMetadata(artifactPath string) *metadata {
+func readMetadata(artifactPath string) (*metadata, error) {
 	bytes, err := os.ReadFile("./repository_metadata/" + artifactPath + ".metadata")
 	if err != nil {
-		fmt.Println(err)
+		return nil, err
 	}
 	m := metadata{}
 	unmarshalErr := json.Unmarshal(bytes, &m)
 	if unmarshalErr != nil {
-		fmt.Println(unmarshalErr)
+		return nil, unmarshalErr
 	}
-	return &m
+	return &m, nil
 }
 
 // Same as above except instead of reading and unmarshaling the json into a struct, just return the json byte array
-func readMetadataJson(artifactPath string) []byte {
+func readMetadataJson(artifactPath string) ([]byte, error) {
 	bytes, err := os.ReadFile("./repository_metadata/" + artifactPath + ".metadata")
 	if err != nil {
-		fmt.Println(err)
+		return nil, err
 	}
-	return bytes
+	return bytes, nil
 }
 
-func removeMetadata(artifactPath string) {
+func removeMetadata(artifactPath string) error {
 	err := os.Remove("./repository_metadata/" + artifactPath + ".metadata")
 	if err != nil {
-		fmt.Println(err)
+		return err
 	}
+	return nil
 }

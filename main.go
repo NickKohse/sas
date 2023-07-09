@@ -25,11 +25,26 @@ func sendFile(w http.ResponseWriter, r *http.Request) {
 	// Send the file to the client
 	fileBytes, err := ioutil.ReadFile("./repository/" + r.FormValue("artifact")) //TODO Stream this instead of reading it all into memory
 	if err != nil {
-		fmt.Println(err)
+		handleServerError(err, w)
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/octet-stream")
 	w.Write(fileBytes)
+
+	m, metadataErr := readMetadata(r.FormValue("artifact"))
+	if metadataErr != nil {
+		handleServerError(metadataErr, w)
+		return
+	}
+	m.AccessTime = time.Now().Unix()
+	m.AccessCount++
+
+	saveErr := m.saveMetadata(r.FormValue("artifact"))
+	if saveErr != nil {
+		handleServerError(saveErr, w)
+		return
+	}
 }
 
 func sendMetadata(w http.ResponseWriter, r *http.Request) {
@@ -42,7 +57,11 @@ func sendMetadata(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	metadataJson := readMetadataJson(r.FormValue("artifact"))
+	metadataJson, err := readMetadataJson(r.FormValue("artifact"))
+	if err != nil {
+		handleServerError(err, w)
+		return
+	}
 	w.Write(metadataJson)
 }
 
@@ -59,13 +78,15 @@ func sendChecksum(w http.ResponseWriter, r *http.Request) {
 	}
 	file, err := os.Open("./repository/" + r.FormValue("artifact"))
 	if err != nil {
-		fmt.Println(err)
+		handleServerError(err, w)
+		return
 	}
 	defer file.Close()
 
 	hasher := sha256.New()
 	if _, err := io.Copy(hasher, file); err != nil {
-		fmt.Println(err)
+		handleServerError(err, w)
+		return
 	}
 	hashString := hex.EncodeToString(hasher.Sum(nil)) + "\n"
 	w.Write([]byte(hashString))
@@ -123,7 +144,7 @@ func recieveFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	metadataPath := "./repository_metadata" + path
+	metadataPath := "./repository_metadata" + path //TODO, move this logic to metadata file
 	os.MkdirAll(metadataPath, os.ModePerm)
 	//TODO move metadata saving to a thread so we can return faster. ALSO TODO, need to differentiate between a new upload and a re-upload
 	hasher := sha256.New()
@@ -135,7 +156,11 @@ func recieveFile(w http.ResponseWriter, r *http.Request) {
 	hashString := hex.EncodeToString(hasher.Sum(nil))
 	m := &metadata{}
 	if update {
-		m = readMetadata(handler.Filename)
+		m, metadataErr := readMetadata(handler.Filename)
+		if metadataErr != nil {
+			handleServerError(metadataErr, w)
+			return
+		}
 		m.ModifyTime = time.Now().Unix()
 		m.Size = handler.Size
 		m.Sha256 = hashString
@@ -143,7 +168,11 @@ func recieveFile(w http.ResponseWriter, r *http.Request) {
 		m = newImplicitMetadata(hashString, handler.Size)
 	}
 
-	m.saveMetadata(metadataPath + handler.Filename + ".metadata")
+	saveErr := m.saveMetadata(handler.Filename)
+	if saveErr != nil {
+		handleServerError(saveErr, w)
+		return
+	}
 
 	// return that we have successfully uploaded our file!
 	w.WriteHeader(http.StatusCreated)

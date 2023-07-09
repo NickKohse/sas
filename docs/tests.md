@@ -13,4 +13,3 @@
 - Hit the upload endpoint but dont specify a file, expect 400
 - Hit the download, checksum, metadata endpoints, dont specify an artifact name, expect 400
 - Hit download, checksum and metadata endponts for a file that never existed, expect 404
-- Search without setting a query
