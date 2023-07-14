@@ -28,21 +28,26 @@ Simple Artifact Store
 `curl -X GET localhost:1997/search?q=test`
 
 ## TODOs
-- Send 5xx on any error encountered
 - Stream files so it works for large files
 - Make url paths wildcards so you can specify files to get in the url instead of form
 - Im memory metadata cache
+- Configurable max file size limit
+- Paginate search results
+- Add sanity/cleanup check on startup (possibly configureable)
+- More consistent error logging
+
 
 ## Rough Version Plan
 ### v0 beta
-one folder/one repo structure thats searchable.
-error handling for non existant files/server side errors
+- one folder/one repo structure thats searchable.
+- error handling for non existant files/server side errors
 
 ### v0.x beta
-In memory metadata
-Flesh out stats
+- In memory metadata - write it to disk in a seperate thread
+- Flesh out stats
+- Send checksum from metadata
 
 ### v1
-Config file, can specify multiple repos to create 
-Add file streaming
-Make urls wildcard
+- Config file, can specify multiple repos to create 
+- Add file streaming
+- Make urls wildcard

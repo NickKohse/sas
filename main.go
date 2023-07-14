@@ -101,11 +101,10 @@ func sendHealth(w http.ResponseWriter, r *http.Request) {
 func recieveFile(w http.ResponseWriter, r *http.Request) {
 	// Write the file to the specified path, creating any folder necessary
 	// Ideally snaitize path so nothing funky is going on.
-	// TODO any place we have error handling we need to return 500
 
 	// 1024 MB limit in file size, should be configurable TODO
 	r.ParseMultipartForm(1024 << 20)
-	// look for key 'artifact'
+
 	file, handler, err := r.FormFile("artifact")
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)

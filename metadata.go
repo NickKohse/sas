@@ -6,8 +6,6 @@ import (
 	"time"
 )
 
-//TODO most of thi file will need to have the functoins converted the return errors if they hit them instead of just printing something
-
 type metadata struct {
 	CreateTime  int64
 	ModifyTime  int64
