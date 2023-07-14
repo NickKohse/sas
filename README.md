@@ -35,6 +35,8 @@ Simple Artifact Store
 - Paginate search results
 - Add sanity/cleanup check on startup (possibly configureable)
 - More consistent error logging
+- divide health stat hits into 2xx/4xx/5xx
+- Further validation on tests besides just output and reponse code
 
 
 ## Rough Version Plan

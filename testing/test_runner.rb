@@ -1,4 +1,4 @@
-#!/usr/local/bin/ruby
+#!/usr/bin/env ruby
 require 'net/http'
 require 'tempfile'
 
@@ -67,7 +67,7 @@ end
 
 start = Time.now
 
-run_case("Health Check", "GET", "http://localhost:1997/health", "Uptime:", 200)
+run_case("Health Check", "GET", "http://localhost:1997/health", "Uptime", 200)
 
 file = Tempfile.new('test')
 file.write(Time.now)

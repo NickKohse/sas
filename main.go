@@ -45,6 +45,7 @@ func sendFile(w http.ResponseWriter, r *http.Request) {
 		handleServerError(saveErr, w)
 		return
 	}
+	health.DownloadHits++
 }
 
 func sendMetadata(w http.ResponseWriter, r *http.Request) {
@@ -63,6 +64,7 @@ func sendMetadata(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Write(metadataJson)
+	health.MetadataHits++
 }
 
 func sendChecksum(w http.ResponseWriter, r *http.Request) {
@@ -90,12 +92,18 @@ func sendChecksum(w http.ResponseWriter, r *http.Request) {
 	}
 	hashString := hex.EncodeToString(hasher.Sum(nil)) + "\n"
 	w.Write([]byte(hashString))
+	health.DownloadHits++
 }
 
 func sendHealth(w http.ResponseWriter, r *http.Request) {
-	uptime := time.Now().Unix() - startTime
+	response, err := buildHealthStats(health)
+	if err != nil {
+		handleServerError(err, w)
+		return
+	}
 
-	w.Write([]byte("Uptime: " + fmt.Sprint(uptime) + "\n"))
+	w.Write(response)
+	health.HealthHits++
 }
 
 func recieveFile(w http.ResponseWriter, r *http.Request) {
@@ -176,6 +184,7 @@ func recieveFile(w http.ResponseWriter, r *http.Request) {
 	// return that we have successfully uploaded our file!
 	w.WriteHeader(http.StatusCreated)
 	fmt.Fprintf(w, "Successfully Uploaded File\n")
+	health.UploadHits++
 }
 
 func deleteFile(w http.ResponseWriter, r *http.Request) {
@@ -197,6 +206,7 @@ func deleteFile(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Successfully deleted file: " + r.FormValue("artifact") + "\n")) //print success if file is removed
 	}
 	removeMetadata(r.FormValue("artifact"))
+	health.DeleteHits++
 }
 
 func searchRepo(w http.ResponseWriter, r *http.Request) {
@@ -217,6 +227,7 @@ func searchRepo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Write([]byte(strings.Join(results, "\n") + "\n")) //TODO: Add pagination
+	health.SearchHits++
 }
 
 func artifactHandler(w http.ResponseWriter, r *http.Request) {
@@ -274,11 +285,11 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-var startTime int64
+var health *healthStats
 
 func main() {
 	fmt.Println("Starting SAS...")
-	startTime = time.Now().Unix()
+	health = newHealthStats(time.Now().Unix())
 	fmt.Println("This is where it would read in the config file...")
 	fmt.Println("Running.")
 
