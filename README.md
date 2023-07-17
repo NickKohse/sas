@@ -29,6 +29,7 @@ Simple Artifact Store
 
 ## TODOs
 - Stream files so it works for large files
+- Move the metadata reading to the metadata file i.e. the part where we check the cache and then read the file
 - Make url paths wildcards so you can specify files to get in the url instead of form
 - Im memory metadata cache
 - Configurable max file size limit

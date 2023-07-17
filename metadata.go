@@ -80,3 +80,19 @@ func removeMetadata(artifactPath string) error {
 	}
 	return nil
 }
+
+func queueWriter(queue map[string]*metadata, sleepDuration int) {
+	for true {
+		if len(queue) > 0 {
+			keys := make([]string, 0, len(queue))
+			for k := range queue {
+				keys = append(keys, k)
+			}
+			for m := range keys {
+				queue[keys[m]].saveMetadata(keys[m]) //Ignoring erros here. fix that
+				delete(queue, keys[m])
+			}
+		}
+		time.Sleep(time.Duration(sleepDuration) * time.Second)
+	}
+}

@@ -3,8 +3,8 @@ package main
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -32,19 +32,23 @@ func sendFile(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/octet-stream")
 	w.Write(fileBytes)
 
-	m, metadataErr := readMetadata(r.FormValue("artifact"))
-	if metadataErr != nil {
-		handleServerError(metadataErr, w)
-		return
+	var m *metadata
+	var ok bool
+
+	m, ok = metadataCache[r.FormValue("artifact")]
+	if !ok {
+		var metadataErr error
+		m, metadataErr = readMetadata(r.FormValue("artifact"))
+		if metadataErr != nil {
+			handleServerError(metadataErr, w)
+			return
+		}
 	}
+
 	m.AccessTime = time.Now().Unix()
 	m.AccessCount++
+	metadataQueue[r.FormValue("artifact")] = m
 
-	saveErr := m.saveMetadata(r.FormValue("artifact"))
-	if saveErr != nil {
-		handleServerError(saveErr, w)
-		return
-	}
 	health.DownloadHits++
 }
 
@@ -57,6 +61,17 @@ func sendMetadata(w http.ResponseWriter, r *http.Request) {
 	if !fileExists("./repository/" + r.FormValue("artifact")) {
 		w.WriteHeader(http.StatusNotFound)
 		return
+	}
+
+	var metadataJson []byte
+
+	metadata, ok := metadataCache[r.FormValue("artifact")]
+	if ok {
+		var marshalErr error
+		metadataJson, marshalErr = json.Marshal(metadata)
+		if marshalErr != nil {
+			handleServerError(marshalErr, w)
+		}
 	}
 	metadataJson, err := readMetadataJson(r.FormValue("artifact"))
 	if err != nil {
@@ -78,20 +93,20 @@ func sendChecksum(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	file, err := os.Open("./repository/" + r.FormValue("artifact"))
-	if err != nil {
-		handleServerError(err, w)
-		return
-	}
-	defer file.Close()
 
-	hasher := sha256.New()
-	if _, err := io.Copy(hasher, file); err != nil {
-		handleServerError(err, w)
-		return
+	var m *metadata
+	var ok bool
+
+	m, ok = metadataCache[r.FormValue("artifact")]
+	if !ok {
+		var metadataErr error
+		m, metadataErr = readMetadata(r.FormValue("artifact"))
+		if metadataErr != nil {
+			handleServerError(metadataErr, w)
+			return
+		}
 	}
-	hashString := hex.EncodeToString(hasher.Sum(nil)) + "\n"
-	w.Write([]byte(hashString))
+	w.Write([]byte(m.Sha256))
 	health.DownloadHits++
 }
 
@@ -124,8 +139,6 @@ func recieveFile(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("File Size: %+v\n", handler.Size)
 	fmt.Printf("MIME Header: %+v\n", handler.Header)
 
-	// read all of the contents of our uploaded file into a
-	// byte array
 	// TODO would be better to do this by streaming
 	fileBytes, err := ioutil.ReadAll(file)
 	if err != nil {
@@ -133,8 +146,9 @@ func recieveFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	path := strings.Replace(r.URL.Path, "artifact", "", 1) // for now assume they wont specify the filename in the post path
-	filePath := "./repository" + path                      // TODO, eventually reponame will be specified in the url
+	path := strings.Replace(r.URL.Path, "/artifact", "", 1) // for now assume they wont specify the filename in the post path
+	filePath := "./repository/" + path                      // TODO, eventually reponame will be specified in the url
+
 	os.MkdirAll(filePath, os.ModePerm)
 
 	update := false
@@ -142,9 +156,6 @@ func recieveFile(w http.ResponseWriter, r *http.Request) {
 		update = true
 	}
 
-	// Create a temporary file within our temp-images directory that follows
-	// a particular naming pattern
-	// nick - here we will actaully need to create a file in the correct directory after reading the url
 	writeErr := os.WriteFile(filePath+handler.Filename, fileBytes, 0600)
 	if writeErr != nil {
 		handleServerError(writeErr, w)
@@ -174,14 +185,9 @@ func recieveFile(w http.ResponseWriter, r *http.Request) {
 	} else {
 		m = newImplicitMetadata(hashString, handler.Size)
 	}
+	metadataCache[path+handler.Filename] = m
+	metadataQueue[path+handler.Filename] = m
 
-	saveErr := m.saveMetadata(handler.Filename)
-	if saveErr != nil {
-		handleServerError(saveErr, w)
-		return
-	}
-
-	// return that we have successfully uploaded our file!
 	w.WriteHeader(http.StatusCreated)
 	fmt.Fprintf(w, "Successfully Uploaded File\n")
 	health.UploadHits++
@@ -205,6 +211,8 @@ func deleteFile(w http.ResponseWriter, r *http.Request) {
 	} else {
 		w.Write([]byte("Successfully deleted file: " + r.FormValue("artifact") + "\n")) //print success if file is removed
 	}
+	delete(metadataQueue, r.FormValue("artifact"))
+	delete(metadataCache, r.FormValue("artifact"))
 	removeMetadata(r.FormValue("artifact"))
 	health.DeleteHits++
 }
@@ -265,7 +273,6 @@ func checksumHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func healthHandler(w http.ResponseWriter, r *http.Request) {
-	// Return uptime, storage stats, files managed etc.
 	switch r.Method {
 	case "GET":
 		sendHealth(w, r)
@@ -286,11 +293,15 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 var health *healthStats
+var metadataCache = make(map[string]*metadata)
+var metadataQueue = make(map[string]*metadata)
 
 func main() {
 	fmt.Println("Starting SAS...")
 	health = newHealthStats(time.Now().Unix())
 	fmt.Println("This is where it would read in the config file...")
+	fmt.Println("Starting metadata writer thread...")
+	go queueWriter(metadataQueue, 5) // Make the time configurable
 	fmt.Println("Running.")
 
 	// ROUTES
