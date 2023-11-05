@@ -31,13 +31,9 @@ Simple Artifact Store
 - Stream files so it works for large files
 - Move the metadata reading to the metadata file i.e. the part where we check the cache and then read the file
 - Make url paths wildcards so you can specify files to get in the url instead of form
-- Im memory metadata cache
-- Configurable max file size limit
-- Paginate search results
 - Add sanity/cleanup check on startup (possibly configureable)
 - More consistent error logging
 - divide health stat hits into 2xx/4xx/5xx
-- Further validation on tests besides just output and reponse code
 
 
 ## Rough Version Plan
@@ -49,6 +45,8 @@ Simple Artifact Store
 - In memory metadata - write it to disk in a seperate thread
 - Flesh out stats
 - Send checksum from metadata
+- Paginate search results
+- Further validation on tests besides just output and reponse code
 
 ### v1
 - Config file, can specify multiple repos to create 

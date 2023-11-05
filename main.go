@@ -72,18 +72,20 @@ func sendMetadata(w http.ResponseWriter, r *http.Request) {
 		if marshalErr != nil {
 			handleServerError(marshalErr, w)
 		}
+	} else {
+		var err error
+		metadataJson, err = readMetadataJson(r.FormValue("artifact"))
+		if err != nil {
+			handleServerError(err, w)
+			return
+		}
 	}
-	metadataJson, err := readMetadataJson(r.FormValue("artifact"))
-	if err != nil {
-		handleServerError(err, w)
-		return
-	}
+
 	w.Write(metadataJson)
 	health.MetadataHits++
 }
 
 func sendChecksum(w http.ResponseWriter, r *http.Request) {
-	// TODO eventually we will keep the checksum in the metadata and not calculate it here
 	if r.FormValue("artifact") == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("No artifact key found in form\n"))
@@ -124,6 +126,7 @@ func sendHealth(w http.ResponseWriter, r *http.Request) {
 func recieveFile(w http.ResponseWriter, r *http.Request) {
 	// Write the file to the specified path, creating any folder necessary
 	// Ideally snaitize path so nothing funky is going on.
+	// This function is too long
 
 	// 1024 MB limit in file size, should be configurable TODO
 	r.ParseMultipartForm(1024 << 20)
