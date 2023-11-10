@@ -1,8 +1,6 @@
 package main
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -154,11 +152,6 @@ func recieveFile(w http.ResponseWriter, r *http.Request) {
 
 	os.MkdirAll(filePath, os.ModePerm)
 
-	update := false
-	if fileExists(filePath + handler.Filename) {
-		update = true
-	}
-
 	writeErr := os.WriteFile(filePath+handler.Filename, fileBytes, 0600)
 	if writeErr != nil {
 		handleServerError(writeErr, w)
@@ -166,30 +159,8 @@ func recieveFile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	metadataPath := "./repository_metadata" + path //TODO, move this logic to metadata file
-	os.MkdirAll(metadataPath, os.ModePerm)
-	//TODO move metadata saving to a thread so we can return faster. ALSO TODO, need to differentiate between a new upload and a re-upload
-	hasher := sha256.New()
-	_, hashErr := hasher.Write(fileBytes)
-	if hashErr != nil {
-		handleServerError(hashErr, w)
-		return
-	}
-	hashString := hex.EncodeToString(hasher.Sum(nil))
-	m := &metadata{}
-	if update {
-		m, metadataErr := readMetadata(handler.Filename)
-		if metadataErr != nil {
-			handleServerError(metadataErr, w)
-			return
-		}
-		m.ModifyTime = time.Now().Unix()
-		m.Size = handler.Size
-		m.Sha256 = hashString
-	} else {
-		m = newImplicitMetadata(hashString, handler.Size)
-	}
-	metadataCache[path+handler.Filename] = m
-	metadataQueue[path+handler.Filename] = m
+	os.MkdirAll(metadataPath, os.ModePerm)         // This should be in some setup function
+	go generateAndSaveMetadata(path+handler.Filename, metadataCache, metadataQueue)
 
 	w.WriteHeader(http.StatusCreated)
 	fmt.Fprintf(w, "Successfully Uploaded File\n")
@@ -212,7 +183,7 @@ func deleteFile(w http.ResponseWriter, r *http.Request) {
 		handleServerError(err, w)
 		return
 	} else {
-		w.Write([]byte("Successfully deleted file: " + r.FormValue("artifact") + "\n")) //print success if file is removed
+		w.Write([]byte("Successfully deleted file: " + r.FormValue("artifact") + "\n"))
 	}
 	delete(metadataQueue, r.FormValue("artifact"))
 	delete(metadataCache, r.FormValue("artifact"))

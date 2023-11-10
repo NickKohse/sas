@@ -1,7 +1,10 @@
 package main
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
+	"io"
 	"os"
 	"time"
 )
@@ -49,6 +52,57 @@ func (m metadata) saveMetadata(filepath string) error {
 		return writeErr
 	}
 	return nil
+}
+
+// Target is a file whose metadata we want to generate then save
+func generateAndSaveMetadata(targetFile string, cache map[string]*metadata, queue map[string]*metadata) error { // We run this in a thread so it needs to print its own errors not return them
+	update := false
+	if fileExists("./repository_metadata/" + targetFile + ".metadata") {
+		update = true
+	}
+
+	target, err := os.Open("./repository/" + targetFile)
+	if err != nil {
+		return err
+	}
+	defer target.Close()
+
+	hasher := sha256.New()
+	buffer := make([]byte, 1024)
+	fileSize := 0
+
+	for {
+		bytesRead, err := target.Read(buffer)
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			return err
+		}
+		hasher.Write(buffer[:bytesRead])
+		fileSize += bytesRead
+	}
+
+	target.Close() // Need to check for errors
+
+	hashString := hex.EncodeToString(hasher.Sum(nil))
+	m := &metadata{}
+	if update {
+		m, metadataErr := readMetadata(targetFile)
+		if metadataErr != nil {
+			return metadataErr
+		}
+		m.ModifyTime = time.Now().Unix()
+		m.Size = int64(fileSize)
+		m.Sha256 = hashString
+		queue[targetFile] = m
+		cache[targetFile] = m
+		return nil
+	} else {
+		m = newImplicitMetadata(hashString, int64(fileSize))
+		queue[targetFile] = m
+		cache[targetFile] = m
+		return nil
+	}
 }
 
 func readMetadata(artifactPath string) (*metadata, error) {

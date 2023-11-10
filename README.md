@@ -34,6 +34,9 @@ Simple Artifact Store
 - Add sanity/cleanup check on startup (possibly configureable)
 - More consistent error logging
 - divide health stat hits into 2xx/4xx/5xx
+- Paginate search results
+- Add config file
+- Add a test for large files
 
 
 ## Rough Version Plan
