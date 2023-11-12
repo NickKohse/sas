@@ -68,7 +68,7 @@ func generateAndSaveMetadata(targetFile string, cache map[string]*metadata, queu
 	defer target.Close()
 
 	hasher := sha256.New()
-	buffer := make([]byte, 1024)
+	buffer := make([]byte, 4096)
 	fileSize := 0
 
 	for {

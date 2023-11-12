@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -140,23 +141,30 @@ func recieveFile(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("File Size: %+v\n", handler.Size)
 	fmt.Printf("MIME Header: %+v\n", handler.Header)
 
-	// TODO would be better to do this by streaming
-	fileBytes, err := ioutil.ReadAll(file)
-	if err != nil {
-		handleServerError(err, w)
-		return
-	}
-
 	path := strings.Replace(r.URL.Path, "/artifact", "", 1) // for now assume they wont specify the filename in the post path
 	filePath := "./repository/" + path                      // TODO, eventually reponame will be specified in the url
 
 	os.MkdirAll(filePath, os.ModePerm)
-
-	writeErr := os.WriteFile(filePath+handler.Filename, fileBytes, 0600)
-	if writeErr != nil {
-		handleServerError(writeErr, w)
+	destFile, destErr := os.Create(filePath + handler.Filename)
+	if destErr != nil {
+		handleServerError(err, w)
 		return
 	}
+
+	buffer := make([]byte, 4096)
+
+	for { //TODO likely better to move the hash calculation into here, then we can only read the file once
+		bytesRead, err := file.Read(buffer)
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			handleServerError(err, w)
+		}
+
+		destFile.Write(buffer[:bytesRead])
+	}
+
+	destFile.Close()
 
 	metadataPath := "./repository_metadata" + path //TODO, move this logic to metadata file
 	os.MkdirAll(metadataPath, os.ModePerm)         // This should be in some setup function
