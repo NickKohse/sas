@@ -77,7 +77,7 @@ run_case("File Download", "GET", "http://localhost:1997/artifact", "", 200, {art
 run_case("Get Metadata", "GET", "http://localhost:1997/metadata", "CreateTime", 200, {artifact: File.basename(file.path)}) # Confirm validity of metadata
 run_case("Get Checksum", "GET", "http://localhost:1997/checksum", "", 200, {artifact: File.basename(file.path)}) #ditto
 run_case("Search", "GET", "http://localhost:1997/search?q=test", "test", 200)
-run_case("Delete File", "DELETE", "http://localhost:1997/artifact", "Successfully deleted ", 200, {artifact: File.basename(file.path)})
+run_case("Delete File", "DELETE", "http://localhost:1997/artifact", "Successfully Deleted ", 200, {artifact: File.basename(file.path)})
 run_case("File Download After it's Deleted", "GET", "http://localhost:1997/artifact", "", 404, {artifact: File.basename(file.path)})
 run_case("Get Metadata After it's Deleted", "GET", "http://localhost:1997/metadata", "", 404, {artifact: File.basename(file.path)})
 run_case("Get Checksum After it's Deleted", "GET", "http://localhost:1997/checksum", "", 404, {artifact: File.basename(file.path)})

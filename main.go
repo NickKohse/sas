@@ -11,6 +11,11 @@ import (
 	"time"
 )
 
+type response struct {
+	Response any
+	Location string
+}
+
 func sendFile(w http.ResponseWriter, r *http.Request) {
 	if r.FormValue("artifact") == "" {
 		w.WriteHeader(http.StatusBadRequest)
@@ -170,8 +175,17 @@ func recieveFile(w http.ResponseWriter, r *http.Request) {
 	os.MkdirAll(metadataPath, os.ModePerm)         // This should be in some setup function
 	go generateAndSaveMetadata(path+handler.Filename, metadataCache, metadataQueue)
 
+	res := response{
+		Response: "Successfully Uploaded File",
+		Location: path + handler.Filename,
+	}
+	response, err := json.Marshal(res)
+	if err != nil {
+		handleServerError(err, w)
+	}
+
 	w.WriteHeader(http.StatusCreated)
-	fmt.Fprintf(w, "Successfully Uploaded File\n")
+	w.Write(response)
 	health.UploadHits++
 }
 
@@ -191,7 +205,15 @@ func deleteFile(w http.ResponseWriter, r *http.Request) {
 		handleServerError(err, w)
 		return
 	} else {
-		w.Write([]byte("Successfully deleted file: " + r.FormValue("artifact") + "\n"))
+		res := response{
+			Response: "Successfully Deleted File",
+			Location: r.FormValue("artifact"),
+		}
+		response, err := json.Marshal(res)
+		if err != nil {
+			handleServerError(err, w)
+		}
+		w.Write(response)
 	}
 	delete(metadataQueue, r.FormValue("artifact"))
 	delete(metadataCache, r.FormValue("artifact"))
@@ -213,10 +235,26 @@ func searchRepo(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if len(results) == 0 {
-		w.Write([]byte("No results found.\n"))
+		res := response{
+			Response: "No results found",
+			Location: "/", // Can only search top level right now, change this later
+		}
+		response, err := json.Marshal(res)
+		if err != nil {
+			handleServerError(err, w)
+		}
+		w.Write(response)
 		return
 	}
-	w.Write([]byte(strings.Join(results, "\n") + "\n")) //TODO: Add pagination
+	res := response{
+		Response: results,
+		Location: "/", // Can only search top level right now, change this later
+	}
+	response, err := json.Marshal(res)
+	if err != nil {
+		handleServerError(err, w)
+	}
+	w.Write(response) //TODO: Add pagination
 	health.SearchHits++
 }
 
