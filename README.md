@@ -28,16 +28,15 @@ Simple Artifact Store
 `curl -X GET localhost:1997/search?q=test`
 
 ## TODOs
-- Move the metadata reading to the metadata file i.e. the part where we check the cache and then read the file
 - Make url paths wildcards so you can specify files to get in the url instead of form
 - Add sanity/cleanup check on startup (possibly configureable)
 - More consistent error logging
 - divide health stat hits into 2xx/4xx/5xx
 - Paginate search results
-- Add config file
-- Always return JSON
 - Add a test for large files
 - should be able to search a sub directory
+- Add config file
+- Move the metadata reading to the metadata file i.e. the part where we check the cache and then read the file
 
 ## Rough Version Plan
 ### v0 beta
@@ -49,6 +48,7 @@ Simple Artifact Store
 - Flesh out stats
 - Add file streaming
 - Send checksum from metadata
+- Always return JSON
 - Paginate search results
 - Further validation on tests besides just output and reponse code
 

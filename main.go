@@ -3,8 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
@@ -17,24 +15,22 @@ type response struct {
 }
 
 func sendFile(w http.ResponseWriter, r *http.Request) {
-	if r.FormValue("artifact") == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("No artifact key found in form\n"))
+	e := preCheck(w, r, true, true)
+	if e != nil {
 		return
 	}
-	if !fileExists("./repository/" + r.FormValue("artifact")) {
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
-	// Send the file to the client
-	fileBytes, err := ioutil.ReadFile("./repository/" + r.FormValue("artifact")) //TODO Stream this instead of reading it all into memory
+
+	w.Header().Set("Content-Type", "application/octet-stream")
+
+	file, err := os.Open("./repository/" + r.FormValue("artifact"))
 	if err != nil {
 		handleServerError(err, w)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/octet-stream")
-	w.Write(fileBytes)
+	streamFile(file, w, w)
+
+	file.Close()
 
 	var m *metadata
 	var ok bool
@@ -57,13 +53,8 @@ func sendFile(w http.ResponseWriter, r *http.Request) {
 }
 
 func sendMetadata(w http.ResponseWriter, r *http.Request) {
-	if r.FormValue("artifact") == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("No artifact key found in form\n"))
-		return
-	}
-	if !fileExists("./repository/" + r.FormValue("artifact")) {
-		w.WriteHeader(http.StatusNotFound)
+	e := preCheck(w, r, true, true)
+	if e != nil {
 		return
 	}
 
@@ -90,13 +81,8 @@ func sendMetadata(w http.ResponseWriter, r *http.Request) {
 }
 
 func sendChecksum(w http.ResponseWriter, r *http.Request) {
-	if r.FormValue("artifact") == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("No artifact key found in form\n"))
-		return
-	}
-	if !fileExists("./repository/" + r.FormValue("artifact")) {
-		w.WriteHeader(http.StatusNotFound)
+	e := preCheck(w, r, true, true)
+	if e != nil {
 		return
 	}
 
@@ -156,20 +142,10 @@ func recieveFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	buffer := make([]byte, 4096)
-
-	for { //TODO likely better to move the hash calculation into here, then we can only read the file once
-		bytesRead, err := file.Read(buffer)
-		if err == io.EOF {
-			break
-		} else if err != nil {
-			handleServerError(err, w)
-		}
-
-		destFile.Write(buffer[:bytesRead])
-	}
+	streamFile(file, destFile, w)
 
 	destFile.Close()
+	file.Close()
 
 	metadataPath := "./repository_metadata" + path //TODO, move this logic to metadata file
 	os.MkdirAll(metadataPath, os.ModePerm)         // This should be in some setup function
@@ -191,15 +167,11 @@ func recieveFile(w http.ResponseWriter, r *http.Request) {
 
 func deleteFile(w http.ResponseWriter, r *http.Request) {
 	// Remove the file and its meta data, if we have any in memory references to that file remove them too
-	if r.FormValue("artifact") == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("No artifact key found in form\n"))
+	e := preCheck(w, r, true, true)
+	if e != nil {
 		return
 	}
-	if !fileExists("./repository/" + r.FormValue("artifact")) {
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
+
 	err := os.Remove("./repository/" + r.FormValue("artifact"))
 	if err != nil {
 		handleServerError(err, w)
