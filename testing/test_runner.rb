@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
 require 'net/http'
 require 'tempfile'
+require 'digest'
 
 # TODO opt parser to choose if were testing a `go run` build or a compiled build
 
@@ -52,7 +53,7 @@ def run_case(title, method, url, expected_result, expected_status_code, params =
         failure = true
     end
     unless res.body.include? expected_result
-        print_colour(:red, "FAIL! Expected response to contain:\n #{expected_result}\n got:\n #{res.body}")
+        print_colour(:red, "FAIL! Expected response to contain:\n #{expected_result[0..50]}...\n got:\n #{res.body[0..50]}...")
         failure = true
     end
     return if failure
@@ -70,12 +71,22 @@ start = Time.now
 run_case("Health Check", "GET", "http://localhost:1997/health", "Uptime", 200)
 
 file = Tempfile.new('test')
+str = Time.now.to_s
+file_sha256 = Digest::SHA256.hexdigest str
 file.write(Time.now)
+
+large_file = Tempfile.new('largetest')
+large_str = 'a' * 10_000_000
+large_file.write(large_str)
+large_file_sha256 = Digest::SHA256.hexdigest large_str
+
 file.close
+large_file.close
+
 run_case("File Upload", "POST", "http://localhost:1997/artifact", "Successfully Uploaded File", 201, {artifact: file.path})
-run_case("File Download", "GET", "http://localhost:1997/artifact", "", 200, {artifact: File.basename(file.path)}) # Return file here and ensure its what we expect
-run_case("Get Metadata", "GET", "http://localhost:1997/metadata", "CreateTime", 200, {artifact: File.basename(file.path)}) # Confirm validity of metadata
-run_case("Get Checksum", "GET", "http://localhost:1997/checksum", "", 200, {artifact: File.basename(file.path)}) #ditto
+run_case("File Download", "GET", "http://localhost:1997/artifact", str, 200, {artifact: File.basename(file.path)})
+run_case("Get Metadata", "GET", "http://localhost:1997/metadata", "\"Sha256\":\"#{file_sha256}\"", 200, {artifact: File.basename(file.path)})
+run_case("Get Checksum", "GET", "http://localhost:1997/checksum", file_sha256, 200, {artifact: File.basename(file.path)})
 run_case("Search", "GET", "http://localhost:1997/search?q=test", "test", 200)
 run_case("Delete File", "DELETE", "http://localhost:1997/artifact", "Successfully Deleted ", 200, {artifact: File.basename(file.path)})
 run_case("File Download After it's Deleted", "GET", "http://localhost:1997/artifact", "", 404, {artifact: File.basename(file.path)})
@@ -85,6 +96,12 @@ run_case("Invalid File Upload", "POST", "http://localhost:1997/artifact", "Unabl
 run_case("File Download - No Artifact Specified", "GET", "http://localhost:1997/artifact", "", 400)
 run_case("Get Metadata - No Artifact Specifiedd", "GET", "http://localhost:1997/metadata", "", 400)
 run_case("Get Checksum - No Artifact Specified", "GET", "http://localhost:1997/checksum", "", 400)
+
+run_case("Large File Upload", "POST", "http://localhost:1997/artifact", "Successfully Uploaded File", 201, {artifact: large_file.path})
+run_case("Large File Download", "GET", "http://localhost:1997/artifact", large_str, 200, {artifact: File.basename(large_file.path)})
+run_case("Large File Get Metadata", "GET", "http://localhost:1997/metadata", "\"Sha256\":\"#{large_file_sha256}\"", 200, {artifact: File.basename(large_file.path)})
+run_case("Large File Get Checksum", "GET", "http://localhost:1997/checksum", large_file_sha256, 200, {artifact: File.basename(large_file.path)})
+run_case("Delete Large File", "DELETE", "http://localhost:1997/artifact", "Successfully Deleted ", 200, {artifact: File.basename(large_file.path)})
 
 elapsed = Time.now - start
 
