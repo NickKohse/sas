@@ -15,7 +15,7 @@ type response struct {
 }
 
 func sendFile(w http.ResponseWriter, r *http.Request) {
-	e := preCheck(w, r, true, true)
+	e := preFormCheck(w, r, true, true)
 	if e != nil {
 		return
 	}
@@ -53,7 +53,7 @@ func sendFile(w http.ResponseWriter, r *http.Request) {
 }
 
 func sendMetadata(w http.ResponseWriter, r *http.Request) {
-	e := preCheck(w, r, true, true)
+	e := preFormCheck(w, r, true, true)
 	if e != nil {
 		return
 	}
@@ -81,7 +81,7 @@ func sendMetadata(w http.ResponseWriter, r *http.Request) {
 }
 
 func sendChecksum(w http.ResponseWriter, r *http.Request) {
-	e := preCheck(w, r, true, true)
+	e := preFormCheck(w, r, true, true)
 	if e != nil {
 		return
 	}
@@ -167,7 +167,7 @@ func recieveFile(w http.ResponseWriter, r *http.Request) {
 
 func deleteFile(w http.ResponseWriter, r *http.Request) {
 	// Remove the file and its meta data, if we have any in memory references to that file remove them too
-	e := preCheck(w, r, true, true)
+	e := preFormCheck(w, r, true, true)
 	if e != nil {
 		return
 	}
@@ -295,6 +295,9 @@ func main() {
 	fmt.Println("Starting metadata writer thread...")
 	go queueWriter(metadataQueue, 5) // Make the time configurable
 	fmt.Println("Running.")
+
+	fmt.Println("Initiating startup checks...")
+	go checkFilesForMetadata("")
 
 	// ROUTES
 	http.HandleFunc("/artifact", artifactHandler) // TODO LATER make this wildcard, as it currently only matches for exactly artifact

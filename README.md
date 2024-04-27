@@ -33,7 +33,6 @@ Simple Artifact Store
 - More consistent error logging
 - divide health stat hits into 2xx/4xx/5xx
 - Paginate search results
-- Add a test for large files
 - should be able to search a sub directory
 - Add config file
 - Move the metadata reading to the metadata file i.e. the part where we check the cache and then read the file

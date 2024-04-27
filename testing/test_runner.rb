@@ -76,7 +76,7 @@ file_sha256 = Digest::SHA256.hexdigest str
 file.write(Time.now)
 
 large_file = Tempfile.new('largetest')
-large_str = 'a' * 10_000_000
+large_str = 'a' * (100 * 1024 * 1024)
 large_file.write(large_str)
 large_file_sha256 = Digest::SHA256.hexdigest large_str
 

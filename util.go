@@ -23,7 +23,7 @@ func handleServerError(err error, w http.ResponseWriter) {
 	w.WriteHeader(http.StatusInternalServerError)
 }
 
-func preCheck(w http.ResponseWriter, r *http.Request, ensureArtifactInReq bool, ensureFileInRepo bool) error {
+func preFormCheck(w http.ResponseWriter, r *http.Request, ensureArtifactInReq bool, ensureFileInRepo bool) error {
 	if r.FormValue("artifact") == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("No artifact key in form\n"))
@@ -74,4 +74,30 @@ func fileCountAndSize(path string) (int, int64, error) {
 		}
 	}
 	return nf, sf, nil
+}
+
+func checkFilesForMetadata(path string) {
+	fmt.Println("Checking to ensure all files have metadata...")
+	files, err := ioutil.ReadDir("repository" + path)
+	if err != nil {
+		fmt.Println("Error while preforming startups checks.")
+		fmt.Println(err)
+	}
+	for _, file := range files {
+		if file.IsDir() {
+			checkFilesForMetadata(filepath.Join(path, file.Name()))
+		} else {
+			if !fileExists("./repository_metadata/" + file.Name() + ".metadata") {
+				fmt.Printf("Warning: No Metadata found for %s. Generating it.\n", file.Name())
+				metadataPath := "./repository_metadata/" + path //TODO, move this logic to metadata file
+				os.MkdirAll(metadataPath, os.ModePerm)          // This should be in some setup function
+				go generateAndSaveMetadata(path+file.Name(), metadataCache, metadataQueue)
+			}
+		}
+	}
+	fmt.Println("Checking to ensure all files have metadata...Done.")
+}
+
+func checkForOrphanMetadata() {
+	// TODO, write a check to see if any metadata files have no more actual file associated with them
 }
