@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 func fileExists(filename string) bool {
@@ -19,7 +20,7 @@ func fileExists(filename string) bool {
 }
 
 func handleServerError(err error, w http.ResponseWriter) {
-	fmt.Println(err) //TODO log this to a file as well
+	fmt.Println(err)
 	w.WriteHeader(http.StatusInternalServerError)
 }
 
@@ -80,14 +81,14 @@ func checkFilesForMetadata(path string) {
 	fmt.Println("Checking to ensure all files have metadata...")
 	files, err := ioutil.ReadDir("repository" + path)
 	if err != nil {
-		fmt.Println("Error while preforming startups checks.")
+		fmt.Println("Error while preforming checkFilesForMetadata")
 		fmt.Println(err)
 	}
 	for _, file := range files {
 		if file.IsDir() {
 			checkFilesForMetadata(filepath.Join(path, file.Name()))
 		} else {
-			if !fileExists("./repository_metadata/" + file.Name() + ".metadata") {
+			if !fileExists("./repository_metadata/" + filepath.Join(path, file.Name()) + ".metadata") {
 				fmt.Printf("Warning: No Metadata found for %s. Generating it.\n", file.Name())
 				metadataPath := "./repository_metadata/" + path //TODO, move this logic to metadata file
 				os.MkdirAll(metadataPath, os.ModePerm)          // This should be in some setup function
@@ -98,6 +99,27 @@ func checkFilesForMetadata(path string) {
 	fmt.Println("Checking to ensure all files have metadata...Done.")
 }
 
-func checkForOrphanMetadata() {
-	// TODO, write a check to see if any metadata files have no more actual file associated with them
+func checkForOrphanMetadata(path string) {
+	fmt.Println("Checking to ensure each metadata file is associated with a file...")
+	files, err := ioutil.ReadDir("repository_metadata" + path)
+	if err != nil {
+		fmt.Println("Error while preforming checkForOrphanMetadata.")
+		fmt.Println(err)
+	}
+	for _, file := range files {
+		if file.IsDir() {
+			checkForOrphanMetadata(filepath.Join(path, file.Name()))
+		} else {
+			if strings.HasSuffix(file.Name(), ".metadata") {
+				if !fileExists("./repository/" + filepath.Join(path, strings.TrimSuffix(file.Name(), ".metadata"))) {
+					fmt.Printf("Warning: No file associated with metadata %s. Removing it.\n", file.Name())
+					os.Remove("./repository_metadata/" + filepath.Join(path, file.Name()))
+				}
+			} else {
+				fmt.Printf("Warning: file %s is not suffixed '.metadata', removing it...\n", file.Name())
+				os.Remove("./repository_metadata/" + filepath.Join(path, file.Name()))
+			}
+		}
+	}
+	fmt.Println("Checking to ensure each metadata file is associated with a file...Done.")
 }

@@ -298,6 +298,7 @@ func main() {
 
 	fmt.Println("Initiating startup checks...")
 	go checkFilesForMetadata("")
+	go checkForOrphanMetadata("")
 
 	// ROUTES
 	http.HandleFunc("/artifact", artifactHandler) // TODO LATER make this wildcard, as it currently only matches for exactly artifact
