@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"io"
 	"os"
 	"time"
@@ -82,7 +83,11 @@ func generateAndSaveMetadata(targetFile string, cache map[string]*metadata, queu
 		fileSize += bytesRead
 	}
 
-	target.Close() // Need to check for errors
+	closeErr := target.Close()
+
+	if closeErr != nil {
+		return err
+	}
 
 	hashString := hex.EncodeToString(hasher.Sum(nil))
 	m := &metadata{}
@@ -143,7 +148,10 @@ func queueWriter(queue map[string]*metadata, sleepDuration int) {
 				keys = append(keys, k)
 			}
 			for m := range keys {
-				queue[keys[m]].saveMetadata(keys[m]) //Ignoring erros here. fix that
+				err := queue[keys[m]].saveMetadata(keys[m])
+				if err != nil {
+					fmt.Printf("Failed to save metadata: %s", keys[m])
+				}
 				delete(queue, keys[m])
 			}
 		}

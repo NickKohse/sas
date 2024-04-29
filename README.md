@@ -29,7 +29,6 @@ Simple Artifact Store
 
 ## TODOs
 - Make url paths wildcards so you can specify files to get in the url instead of form
-- More consistent error logging
 - divide health stat hits into 2xx/4xx/5xx
 - Paginate search results
 - should be able to search a sub directory
@@ -47,6 +46,7 @@ Simple Artifact Store
 - Add file streaming
 - Send checksum from metadata
 - Always return JSON
+- Startup Sanity checks
 - Paginate search results
 - Further validation on tests besides just output and reponse code
 
