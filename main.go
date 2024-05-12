@@ -291,10 +291,10 @@ var metadataQueue = make(map[string]*metadata)
 func main() {
 	fmt.Println("Starting SAS...")
 	health = newHealthStats(time.Now().Unix())
+
 	fmt.Println("This is where it would read in the config file...")
 	fmt.Println("Starting metadata writer thread...")
 	go queueWriter(metadataQueue, 5) // Make the time configurable
-	fmt.Println("Running.")
 
 	fmt.Println("Initiating startup checks...")
 	go checkFilesForMetadata("")
@@ -308,5 +308,6 @@ func main() {
 	http.HandleFunc("/search", searchHandler)
 
 	http.ListenAndServe(":1997", nil)
+	fmt.Println("Running.")
 
 }

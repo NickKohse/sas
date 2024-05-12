@@ -28,12 +28,14 @@ Simple Artifact Store
 `curl -X GET localhost:1997/search?q=test`
 
 ## TODOs
+- Move the metadata reading to the metadata file i.e. the part where we check the cache and then read the file (should be easy to do as the metadatacache is in scope of the read metadata function)
 - Make url paths wildcards so you can specify files to get in the url instead of form
 - divide health stat hits into 2xx/4xx/5xx
 - Paginate search results
 - should be able to search a sub directory
 - Add config file
-- Move the metadata reading to the metadata file i.e. the part where we check the cache and then read the file
+    - Including which port to run on, max file size allowed, etc.
+- Once the config file is read, setup any necessary directories/anything else before the server starts running
 
 ## Rough Version Plan
 ### v0 beta
@@ -53,3 +55,7 @@ Simple Artifact Store
 ### v1
 - Config file, can specify multiple repos to create 
 - Make urls wildcard
+
+### v1.x
+- Paginate search results, add searching a sub-directory
+- More in depth health stats
