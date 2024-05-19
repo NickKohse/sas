@@ -15,7 +15,7 @@ type response struct {
 }
 
 func sendFile(w http.ResponseWriter, r *http.Request) {
-	e := preFormCheck(w, r, true, true)
+	e := preFormCheck(w, r)
 	if e != nil {
 		return
 	}
@@ -32,17 +32,10 @@ func sendFile(w http.ResponseWriter, r *http.Request) {
 
 	file.Close()
 
-	var m *metadata
-	var ok bool
-
-	m, ok = metadataCache[r.FormValue("artifact")]
-	if !ok {
-		var metadataErr error
-		m, metadataErr = readMetadata(r.FormValue("artifact"))
-		if metadataErr != nil {
-			handleServerError(metadataErr, w)
-			return
-		}
+	m, metadataErr := readMetadata(r.FormValue("artifact"))
+	if metadataErr != nil {
+		handleServerError(metadataErr, w)
+		return
 	}
 
 	m.AccessTime = time.Now().Unix()
@@ -53,27 +46,20 @@ func sendFile(w http.ResponseWriter, r *http.Request) {
 }
 
 func sendMetadata(w http.ResponseWriter, r *http.Request) {
-	e := preFormCheck(w, r, true, true)
+	e := preFormCheck(w, r)
 	if e != nil {
 		return
 	}
 
-	var metadataJson []byte
+	m, metadataErr := readMetadata(r.FormValue("artifact"))
+	if metadataErr != nil {
+		handleServerError(metadataErr, w)
+		return
+	}
 
-	metadata, ok := metadataCache[r.FormValue("artifact")]
-	if ok {
-		var marshalErr error
-		metadataJson, marshalErr = json.Marshal(metadata)
-		if marshalErr != nil {
-			handleServerError(marshalErr, w)
-		}
-	} else {
-		var err error
-		metadataJson, err = readMetadataJson(r.FormValue("artifact"))
-		if err != nil {
-			handleServerError(err, w)
-			return
-		}
+	metadataJson, marshalErr := json.Marshal(m)
+	if marshalErr != nil {
+		handleServerError(marshalErr, w)
 	}
 
 	w.Write(metadataJson)
@@ -81,28 +67,22 @@ func sendMetadata(w http.ResponseWriter, r *http.Request) {
 }
 
 func sendChecksum(w http.ResponseWriter, r *http.Request) {
-	e := preFormCheck(w, r, true, true)
+	e := preFormCheck(w, r)
 	if e != nil {
 		return
 	}
 
-	var m *metadata
-	var ok bool
-
-	m, ok = metadataCache[r.FormValue("artifact")]
-	if !ok {
-		var metadataErr error
-		m, metadataErr = readMetadata(r.FormValue("artifact"))
-		if metadataErr != nil {
-			handleServerError(metadataErr, w)
-			return
-		}
+	m, metadataErr := readMetadata(r.FormValue("artifact"))
+	if metadataErr != nil {
+		handleServerError(metadataErr, w)
+		return
 	}
+
 	w.Write([]byte(m.Sha256))
 	health.DownloadHits++
 }
 
-func sendHealth(w http.ResponseWriter, r *http.Request) {
+func sendHealth(w http.ResponseWriter) {
 	response, err := buildHealthStats(health)
 	if err != nil {
 		handleServerError(err, w)
@@ -167,7 +147,7 @@ func recieveFile(w http.ResponseWriter, r *http.Request) {
 
 func deleteFile(w http.ResponseWriter, r *http.Request) {
 	// Remove the file and its meta data, if we have any in memory references to that file remove them too
-	e := preFormCheck(w, r, true, true)
+	e := preFormCheck(w, r)
 	if e != nil {
 		return
 	}
@@ -267,7 +247,7 @@ func checksumHandler(w http.ResponseWriter, r *http.Request) {
 func healthHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
-		sendHealth(w, r)
+		sendHealth(w)
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		w.Write([]byte("Method Not Allowed\n"))

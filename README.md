@@ -28,7 +28,6 @@ Simple Artifact Store
 `curl -X GET localhost:1997/search?q=test`
 
 ## TODOs
-- Move the metadata reading to the metadata file i.e. the part where we check the cache and then read the file (should be easy to do as the metadatacache is in scope of the read metadata function)
 - Make url paths wildcards so you can specify files to get in the url instead of form
 - divide health stat hits into 2xx/4xx/5xx
 - Paginate search results

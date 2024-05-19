@@ -111,16 +111,22 @@ func generateAndSaveMetadata(targetFile string, cache map[string]*metadata, queu
 }
 
 func readMetadata(artifactPath string) (*metadata, error) {
-	bytes, err := os.ReadFile("./repository_metadata/" + artifactPath + ".metadata")
-	if err != nil {
-		return nil, err
+	var m *metadata
+	var ok bool
+	m, ok = metadataCache[artifactPath]
+	if !ok {
+		bytes, err := os.ReadFile("./repository_metadata/" + artifactPath + ".metadata")
+		if err != nil {
+			return nil, err
+		}
+
+		unmarshalErr := json.Unmarshal(bytes, &m)
+		if unmarshalErr != nil {
+			return nil, unmarshalErr
+		}
 	}
-	m := metadata{}
-	unmarshalErr := json.Unmarshal(bytes, &m)
-	if unmarshalErr != nil {
-		return nil, unmarshalErr
-	}
-	return &m, nil
+
+	return m, nil
 }
 
 // Same as above except instead of reading and unmarshaling the json into a struct, just return the json byte array

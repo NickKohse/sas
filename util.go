@@ -24,7 +24,7 @@ func handleServerError(err error, w http.ResponseWriter) {
 	w.WriteHeader(http.StatusInternalServerError)
 }
 
-func preFormCheck(w http.ResponseWriter, r *http.Request, ensureArtifactInReq bool, ensureFileInRepo bool) error {
+func preFormCheck(w http.ResponseWriter, r *http.Request) error {
 	if r.FormValue("artifact") == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("No artifact key in form\n"))
