@@ -147,7 +147,7 @@ func removeMetadata(artifactPath string) error {
 }
 
 func queueWriter(queue map[string]*metadata, sleepDuration int) {
-	for true {
+	for {
 		if len(queue) > 0 {
 			keys := make([]string, 0, len(queue))
 			for k := range queue {

@@ -28,11 +28,11 @@ func preFormCheck(w http.ResponseWriter, r *http.Request) error {
 	if r.FormValue("artifact") == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("No artifact key in form\n"))
-		return errors.New("No artifact key in form\n")
+		return errors.New("no artifact key in form")
 	}
 	if !fileExists("./repository/" + r.FormValue("artifact")) {
 		w.WriteHeader(http.StatusNotFound)
-		return errors.New("File not in repository")
+		return errors.New("file not in repository")
 	}
 	return nil
 }
@@ -46,7 +46,7 @@ func streamFile(sourceFile io.Reader, destFile io.Writer, w http.ResponseWriter)
 			break
 		} else if err != nil {
 			handleServerError(err, w)
-			return errors.New("Error reading file.")
+			return errors.New("error reading file")
 		}
 
 		destFile.Write(buffer[:bytesRead])

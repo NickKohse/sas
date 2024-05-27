@@ -67,12 +67,14 @@ func sendMetadata(w http.ResponseWriter, r *http.Request) {
 }
 
 func sendChecksum(w http.ResponseWriter, r *http.Request) {
-	e := preFormCheck(w, r)
-	if e != nil {
-		return
-	}
+	// e := preFormCheck(w, r)
+	// if e != nil {
+	// 	return
+	// } //TODO need to rework this as artifact form field is no longer there, need to check based off url, and if no field is specifid return 400
 
-	m, metadataErr := readMetadata(r.FormValue("artifact"))
+	artifactName := strings.Replace(r.URL.Path, "/checksum/", "", 1) //TODO, there might be a better way to say remove the first item from the path in general
+
+	m, metadataErr := readMetadata(artifactName)
 	if metadataErr != nil {
 		handleServerError(metadataErr, w)
 		return
@@ -280,14 +282,17 @@ func main() {
 	go checkFilesForMetadata("")
 	go checkForOrphanMetadata("")
 
-	// ROUTES
-	http.HandleFunc("/artifact", artifactHandler) // TODO LATER make this wildcard, as it currently only matches for exactly artifact
-	http.HandleFunc("/metadata", metadataHandler)
-	http.HandleFunc("/checksum", checksumHandler)
-	http.HandleFunc("/health", healthHandler)
-	http.HandleFunc("/search", searchHandler)
+	mux := http.NewServeMux()
 
-	http.ListenAndServe(":1997", nil)
+	// ROUTES
+	mux.HandleFunc("/artifact/", artifactHandler) // TODO LATER make this wildcard, as it currently only matches for exactly artifact
+	mux.HandleFunc("/metadata/", metadataHandler)
+	mux.HandleFunc("/checksum/", checksumHandler)
+	mux.HandleFunc("/search", searchHandler)
+	mux.HandleFunc("/health", healthHandler)
+
+	fmt.Println("runin")
+	http.ListenAndServe(":1997", mux)
 	fmt.Println("Running.")
 
 }
