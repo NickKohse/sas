@@ -35,6 +35,7 @@ Simple Artifact Store
 - Add config file
     - Including which port to run on, max file size allowed, etc.
 - Once the config file is read, setup any necessary directories/anything else before the server starts running
+- tests can parse the returned json and check the object has the right keys/reasonable values in the keys
 
 ## Rough Version Plan
 ### v0 beta

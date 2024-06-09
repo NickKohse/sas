@@ -24,17 +24,22 @@ func handleServerError(err error, w http.ResponseWriter) {
 	w.WriteHeader(http.StatusInternalServerError)
 }
 
-func preFormCheck(w http.ResponseWriter, r *http.Request) error {
-	if r.FormValue("artifact") == "" {
+func preFormCheck(w http.ResponseWriter, r *http.Request) (string, error) {
+	firstSlash := strings.Index(r.URL.Path, "/")
+	afterFirstSlash := r.URL.Path[firstSlash+1:]
+	secondSlash := strings.Index(afterFirstSlash, "/")
+	artifactName := afterFirstSlash[secondSlash+1:] //This converts something like /metadata/folder/testfile to folder/testfile
+
+	if len(artifactName) == 0 {
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("No artifact key in form\n"))
-		return errors.New("no artifact key in form")
+		w.Write([]byte("No artifact specified in path"))
+		return "", errors.New("no artifact found in path")
 	}
-	if !fileExists("./repository/" + r.FormValue("artifact")) {
+	if !fileExists("./repository/" + artifactName) {
 		w.WriteHeader(http.StatusNotFound)
-		return errors.New("file not in repository")
+		return "", errors.New("file not found in repository")
 	}
-	return nil
+	return artifactName, nil
 }
 
 func streamFile(sourceFile io.Reader, destFile io.Writer, w http.ResponseWriter) error {

@@ -15,14 +15,14 @@ type response struct {
 }
 
 func sendFile(w http.ResponseWriter, r *http.Request) {
-	e := preFormCheck(w, r)
+	artifactName, e := preFormCheck(w, r)
 	if e != nil {
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/octet-stream")
 
-	file, err := os.Open("./repository/" + r.FormValue("artifact"))
+	file, err := os.Open("./repository/" + artifactName)
 	if err != nil {
 		handleServerError(err, w)
 		return
@@ -32,7 +32,7 @@ func sendFile(w http.ResponseWriter, r *http.Request) {
 
 	file.Close()
 
-	m, metadataErr := readMetadata(r.FormValue("artifact"))
+	m, metadataErr := readMetadata(artifactName)
 	if metadataErr != nil {
 		handleServerError(metadataErr, w)
 		return
@@ -40,18 +40,18 @@ func sendFile(w http.ResponseWriter, r *http.Request) {
 
 	m.AccessTime = time.Now().Unix()
 	m.AccessCount++
-	metadataQueue[r.FormValue("artifact")] = m
+	metadataQueue[artifactName] = m
 
 	health.DownloadHits++
 }
 
 func sendMetadata(w http.ResponseWriter, r *http.Request) {
-	e := preFormCheck(w, r)
+	artifactName, e := preFormCheck(w, r)
 	if e != nil {
 		return
 	}
 
-	m, metadataErr := readMetadata(r.FormValue("artifact"))
+	m, metadataErr := readMetadata(artifactName)
 	if metadataErr != nil {
 		handleServerError(metadataErr, w)
 		return
@@ -67,12 +67,10 @@ func sendMetadata(w http.ResponseWriter, r *http.Request) {
 }
 
 func sendChecksum(w http.ResponseWriter, r *http.Request) {
-	// e := preFormCheck(w, r)
-	// if e != nil {
-	// 	return
-	// } //TODO need to rework this as artifact form field is no longer there, need to check based off url, and if no field is specifid return 400
-
-	artifactName := strings.Replace(r.URL.Path, "/checksum/", "", 1) //TODO, there might be a better way to say remove the first item from the path in general
+	artifactName, e := preFormCheck(w, r)
+	if e != nil {
+		return
+	}
 
 	m, metadataErr := readMetadata(artifactName)
 	if metadataErr != nil {
@@ -103,7 +101,7 @@ func recieveFile(w http.ResponseWriter, r *http.Request) {
 	// 1024 MB limit in file size, should be configurable TODO
 	r.ParseMultipartForm(1024 << 20)
 
-	file, handler, err := r.FormFile("artifact")
+	file, handler, err := r.FormFile("artifact") //TODO, can this be a wildcard too?
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("Unable to process artifact, it's possible the key doesnt exist in the form, or it was not a valid file.\n"))
@@ -149,19 +147,19 @@ func recieveFile(w http.ResponseWriter, r *http.Request) {
 
 func deleteFile(w http.ResponseWriter, r *http.Request) {
 	// Remove the file and its meta data, if we have any in memory references to that file remove them too
-	e := preFormCheck(w, r)
+	artifactName, e := preFormCheck(w, r)
 	if e != nil {
 		return
 	}
 
-	err := os.Remove("./repository/" + r.FormValue("artifact"))
+	err := os.Remove("./repository/" + artifactName)
 	if err != nil {
 		handleServerError(err, w)
 		return
 	} else {
 		res := response{
 			Response: "Successfully Deleted File",
-			Location: r.FormValue("artifact"),
+			Location: artifactName,
 		}
 		response, err := json.Marshal(res)
 		if err != nil {
@@ -169,9 +167,9 @@ func deleteFile(w http.ResponseWriter, r *http.Request) {
 		}
 		w.Write(response)
 	}
-	delete(metadataQueue, r.FormValue("artifact"))
-	delete(metadataCache, r.FormValue("artifact"))
-	removeMetadata(r.FormValue("artifact"))
+	delete(metadataQueue, artifactName)
+	delete(metadataCache, artifactName)
+	removeMetadata(artifactName)
 	health.DeleteHits++
 }
 
@@ -291,7 +289,6 @@ func main() {
 	mux.HandleFunc("/search", searchHandler)
 	mux.HandleFunc("/health", healthHandler)
 
-	fmt.Println("runin")
 	http.ListenAndServe(":1997", mux)
 	fmt.Println("Running.")
 

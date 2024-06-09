@@ -49,11 +49,11 @@ def run_case(title, method, url, expected_result, expected_status_code, params =
     end
     failure = false
     if res.code.to_i != expected_status_code
-        print_colour(:red, "FAIL! Expected status code #{expected_status_code} got #{res.code} ")
+        print_colour(:red, "FAIL! Expected status code #{expected_status_code} got #{res.code}\n")
         failure = true
     end
     unless res.body.include? expected_result
-        print_colour(:red, "FAIL! Expected response to contain:\n #{expected_result[0..50]}...\n got:\n #{res.body[0..50]}...")
+        print_colour(:red, "FAIL! Expected response to contain:\n #{expected_result[0..50]}...\n got:\n #{res.body[0..50]}...\n")
         failure = true
     end
     return if failure
@@ -85,26 +85,27 @@ large_file.close
 
 run_case("File Upload", "POST", "http://localhost:1997/artifact/", "Successfully Uploaded File", 201, {artifact: file.path})
 sleep 5 #because the server is calcuating metadata in a seperate thread its not guarenteed you will be able to access it right after uploading a file
-run_case("File Download", "GET", "http://localhost:1997/artifact/", str, 200, {artifact: File.basename(file.path)})
-run_case("Get Metadata", "GET", "http://localhost:1997/metadata/", "\"Sha256\":\"#{file_sha256}\"", 200, {artifact: File.basename(file.path)})
+run_case("File Download", "GET", "http://localhost:1997/artifact/#{File.basename(file.path)}", str, 200)
+run_case("Get Metadata", "GET", "http://localhost:1997/metadata/#{File.basename(file.path)}", "\"Sha256\":\"#{file_sha256}\"", 200)
 run_case("Get Checksum", "GET", "http://localhost:1997/checksum/#{File.basename(file.path)}", file_sha256, 200)
 run_case("Search", "GET", "http://localhost:1997/search?q=test", "test", 200)
-run_case("Delete File", "DELETE", "http://localhost:1997/artifact/", "Successfully Deleted ", 200, {artifact: File.basename(file.path)})
-run_case("File Download After it's Deleted", "GET", "http://localhost:1997/artifact/", "", 404, {artifact: File.basename(file.path)})
-run_case("Get Metadata After it's Deleted", "GET", "http://localhost:1997/metadata/", "", 404, {artifact: File.basename(file.path)})
+run_case("Delete File", "DELETE", "http://localhost:1997/artifact/#{File.basename(file.path)}", "Successfully Deleted ", 200)
+run_case("File Download After it's Deleted", "GET", "http://localhost:1997/artifact/#{File.basename(file.path)}", "", 404)
+run_case("Get Metadata After it's Deleted", "GET", "http://localhost:1997/metadata/#{File.basename(file.path)}", "", 404)
 run_case("Get Checksum After it's Deleted", "GET", "http://localhost:1997/checksum/#{File.basename(file.path)}", "", 404)
+
 run_case("Invalid File Upload", "POST", "http://localhost:1997/artifact/", "Unable to process artifact", 400, {artifact: ''})
 run_case("File Download - No Artifact Specified", "GET", "http://localhost:1997/artifact/", "", 400)
-run_case("Get Metadata - No Artifact Specifiedd", "GET", "http://localhost:1997/metadata/", "", 400)
+run_case("Get Metadata - No Artifact Specified", "GET", "http://localhost:1997/metadata/", "", 400)
 run_case("Get Checksum - No Artifact Specified", "GET", "http://localhost:1997/checksum/", "", 400)
 
 run_case("Large File Upload", "POST", "http://localhost:1997/artifact/", "Successfully Uploaded File", 201, {artifact: large_file.path})
 sleep 5
-run_case("Large File Download", "GET", "http://localhost:1997/artifact/", large_str, 200, {artifact: File.basename(large_file.path)})
-run_case("Large File Get Metadata", "GET", "http://localhost:1997/metadata/", "\"Sha256\":\"#{large_file_sha256}\"", 200, {artifact: File.basename(large_file.path)})
+run_case("Large File Download", "GET", "http://localhost:1997/artifact/#{File.basename(large_file.path)}", large_str, 200)
+run_case("Large File Get Metadata", "GET", "http://localhost:1997/metadata/#{File.basename(large_file.path)}", "\"Sha256\":\"#{large_file_sha256}\"", 200)
 run_case("Large File Get Checksum", "GET", "http://localhost:1997/checksum/#{File.basename(large_file.path)}", large_file_sha256, 200)
-run_case("Delete Large File", "DELETE", "http://localhost:1997/artifact/", "Successfully Deleted ", 200, {artifact: File.basename(large_file.path)})
+run_case("Delete Large File", "DELETE", "http://localhost:1997/artifact/#{File.basename(large_file.path)}", "Successfully Deleted ", 200)
 
 elapsed = Time.now - start
 
-print_colour(:orange, "Run of #{$cases} cases complete. #{$passes}/#{$cases} passed. Time elapsed #{elapsed} seconds.\n")
+print_colour(:orange, "Run of #{$cases} cases complete. #{$passes}/#{$cases} passed. Time elapsed: #{elapsed} seconds.\n")
