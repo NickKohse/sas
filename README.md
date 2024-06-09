@@ -2,11 +2,11 @@
 Simple Artifact Store
 
 ## Basic Structure
-- GET `/artifact`
+- GET `/artifact/<name>`
 - POST `/artifact`
-- DELETE `/artifact`
-- GET `/checksum`
-- GET `/metadata`
+- DELETE `/artifact/<name>`
+- GET `/checksum/<name>`
+- GET `/metadata/<name>`
 - GET `/health`
 - GET `/search?q=<search term>`
 
@@ -16,13 +16,13 @@ Simple Artifact Store
 `curl -i -X POST -H "Content-Type: multipart/form-data" -F "artifact=@test" localhost:1997/artifact`
 
 ### Retrieving a file
-`curl -X GET -F "artifact=test" localhost:1997/artifact -o output.txt`
+`curl -X GET localhost:1997/artifact/test -o output.txt`
 
 ### Removing a file
-`curl -X DELETE -F "artifact=test" localhost:1997/artifact`
+`curl -X DELETE localhost:1997/artifact/test`
 
 ### Retrieving Metadata
-`curl -X GET -F "artifact=test" localhost:1997/metadata`
+`curl -X GET localhost:1997/metadata/test`
 
 ### Searching for a file 
 `curl -X GET localhost:1997/search?q=test`
