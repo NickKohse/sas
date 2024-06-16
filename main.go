@@ -79,7 +79,7 @@ func sendChecksum(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Write([]byte(m.Sha256))
-	health.DownloadHits++
+	health.ChecksumHits++
 }
 
 func sendHealth(w http.ResponseWriter) {
