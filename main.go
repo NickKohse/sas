@@ -127,8 +127,8 @@ func recieveFile(w http.ResponseWriter, r *http.Request) {
 	destFile.Close()
 	file.Close()
 
-	metadataPath := "./repository_metadata" + path //TODO, move this logic to metadata file
-	os.MkdirAll(metadataPath, os.ModePerm)         // This should be in some setup function
+	metadataPath := "./.repository_metadata" + path //TODO, move this logic to metadata file
+	os.MkdirAll(metadataPath, os.ModePerm)          // This should be in some setup function
 	go generateAndSaveMetadata(path+handler.Filename, metadataCache, metadataQueue)
 
 	res := response{
@@ -274,7 +274,7 @@ func main() {
 
 	fmt.Println("This is where it would read in the config file...")
 	fmt.Println("Starting metadata writer thread...")
-	go queueWriter(metadataQueue, 5) // Make the time configurable
+	go queueWriter(metadataQueue, 5)
 
 	fmt.Println("Initiating startup checks...")
 	go checkFilesForMetadata("")

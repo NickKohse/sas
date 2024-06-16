@@ -93,10 +93,10 @@ func checkFilesForMetadata(path string) {
 		if file.IsDir() {
 			checkFilesForMetadata(filepath.Join(path, file.Name()))
 		} else {
-			if !fileExists("./repository_metadata/" + filepath.Join(path, file.Name()) + ".metadata") {
+			if !fileExists("./.repository_metadata/" + filepath.Join(path, file.Name()) + ".metadata") {
 				fmt.Printf("Warning: No Metadata found for %s. Generating it.\n", file.Name())
-				metadataPath := "./repository_metadata/" + path //TODO, move this logic to metadata file
-				os.MkdirAll(metadataPath, os.ModePerm)          // This should be in some setup function
+				metadataPath := "./.repository_metadata/" + path //TODO, move this logic to metadata file
+				os.MkdirAll(metadataPath, os.ModePerm)           // This should be in some setup function
 				go generateAndSaveMetadata(path+file.Name(), metadataCache, metadataQueue)
 			}
 		}
@@ -106,7 +106,7 @@ func checkFilesForMetadata(path string) {
 
 func checkForOrphanMetadata(path string) {
 	fmt.Println("Checking to ensure each metadata file is associated with a file...")
-	files, err := ioutil.ReadDir("repository_metadata" + path)
+	files, err := ioutil.ReadDir(".repository_metadata" + path)
 	if err != nil {
 		fmt.Println("Error while preforming checkForOrphanMetadata.")
 		fmt.Println(err)
@@ -118,11 +118,11 @@ func checkForOrphanMetadata(path string) {
 			if strings.HasSuffix(file.Name(), ".metadata") {
 				if !fileExists("./repository/" + filepath.Join(path, strings.TrimSuffix(file.Name(), ".metadata"))) {
 					fmt.Printf("Warning: No file associated with metadata %s. Removing it.\n", file.Name())
-					os.Remove("./repository_metadata/" + filepath.Join(path, file.Name()))
+					os.Remove("./.repository_metadata/" + filepath.Join(path, file.Name()))
 				}
 			} else {
 				fmt.Printf("Warning: file %s is not suffixed '.metadata', removing it...\n", file.Name())
-				os.Remove("./repository_metadata/" + filepath.Join(path, file.Name()))
+				os.Remove("./.repository_metadata/" + filepath.Join(path, file.Name()))
 			}
 		}
 	}

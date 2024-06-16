@@ -48,7 +48,7 @@ func (m metadata) saveMetadata(filepath string) error {
 	if err != nil {
 		return err
 	}
-	writeErr := os.WriteFile("./repository_metadata/"+filepath+".metadata", bytes, 0600)
+	writeErr := os.WriteFile("./.repository_metadata/"+filepath+".metadata", bytes, 0600)
 	if writeErr != nil {
 		return writeErr
 	}
@@ -58,7 +58,7 @@ func (m metadata) saveMetadata(filepath string) error {
 // Target is a file whose metadata we want to generate then save
 func generateAndSaveMetadata(targetFile string, cache map[string]*metadata, queue map[string]*metadata) error { // We run this in a thread so it needs to print its own errors not return them
 	update := false
-	if fileExists("./repository_metadata/" + targetFile + ".metadata") {
+	if fileExists("./.repository_metadata/" + targetFile + ".metadata") {
 		update = true
 	}
 
@@ -115,7 +115,7 @@ func readMetadata(artifactPath string) (*metadata, error) {
 	var ok bool
 	m, ok = metadataCache[artifactPath]
 	if !ok {
-		bytes, err := os.ReadFile("./repository_metadata/" + artifactPath + ".metadata")
+		bytes, err := os.ReadFile("./.repository_metadata/" + artifactPath + ".metadata")
 		if err != nil {
 			return nil, err
 		}
@@ -131,7 +131,7 @@ func readMetadata(artifactPath string) (*metadata, error) {
 
 // Same as above except instead of reading and unmarshaling the json into a struct, just return the json byte array
 func readMetadataJson(artifactPath string) ([]byte, error) {
-	bytes, err := os.ReadFile("./repository_metadata/" + artifactPath + ".metadata")
+	bytes, err := os.ReadFile("./.repository_metadata/" + artifactPath + ".metadata")
 	if err != nil {
 		return nil, err
 	}
@@ -139,7 +139,7 @@ func readMetadataJson(artifactPath string) ([]byte, error) {
 }
 
 func removeMetadata(artifactPath string) error {
-	err := os.Remove("./repository_metadata/" + artifactPath + ".metadata")
+	err := os.Remove("./.repository_metadata/" + artifactPath + ".metadata")
 	if err != nil {
 		return err
 	}
